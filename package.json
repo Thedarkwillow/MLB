@@ -1,5 +1,12 @@
 {
   "name": "mlb-props-app",
   "private": true,
-  "version": "0.0.1"
+  "version": "0.0.1",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.8",
+    "@vercel/node": "^3.2.26"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
 }

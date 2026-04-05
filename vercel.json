@@ -1,14 +1,9 @@
 {
-  "buildCommand": "cd ui && npm install && npm run build",
+  "installCommand": "npm install && cd ui && npm install",
+  "buildCommand": "cd ui && npm run build",
   "outputDirectory": "ui/dist",
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

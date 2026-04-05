@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../lib/supabase";
+import { supabase, supabaseDebug } from "../lib/supabase";
 import type { BoardProp } from "../lib/types";
 import Table from "../components/Table";
 
@@ -15,7 +15,9 @@ export default function BoardPage() {
     async function load() {
       setLoading(true);
       setError("");
-      setDebug("");
+      setDebug(
+        `url=${supabaseDebug.url} | anonPrefix=${supabaseDebug.anonPrefix} | anonLength=${supabaseDebug.anonLength}`
+      );
 
       const snapshotRes = await supabase
         .from("board_snapshots")
@@ -25,20 +27,20 @@ export default function BoardPage() {
         .single();
 
       if (snapshotRes.error) {
-        setError(`snapshot query failed: ${snapshotRes.error.message}`);
+        setError(
+          `snapshot query failed: ${snapshotRes.error.message} | code=${snapshotRes.error.code ?? "none"}`
+        );
         setLoading(false);
         return;
       }
 
       const snapshotId = snapshotRes.data?.id;
       if (!snapshotId) {
-        setDebug("No latest snapshot found.");
+        setDebug((d) => `${d} | no latest snapshot found`);
         setRows([]);
         setLoading(false);
         return;
       }
-
-      setDebug(`Latest snapshot: ${snapshotId}`);
 
       const propsRes = await supabase
         .from("board_props")
@@ -47,13 +49,15 @@ export default function BoardPage() {
         .order("player_name", { ascending: true });
 
       if (propsRes.error) {
-        setError(`board_props query failed: ${propsRes.error.message}`);
+        setError(
+          `board_props query failed: ${propsRes.error.message} | code=${propsRes.error.code ?? "none"}`
+        );
         setLoading(false);
         return;
       }
 
       setRows((propsRes.data as BoardProp[]) ?? []);
-      setDebug((d) => `${d} · Loaded ${(propsRes.data ?? []).length} rows`);
+      setDebug((d) => `${d} | snapshot=${snapshotId} | rows=${(propsRes.data ?? []).length}`);
       setLoading(false);
     }
 

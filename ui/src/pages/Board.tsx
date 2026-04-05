@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase, supabaseDebug } from "../lib/supabase";
+import { supabase } from "../lib/supabase";
 import type { BoardProp } from "../lib/types";
 import Table from "../components/Table";
 
@@ -7,7 +7,6 @@ export default function BoardPage() {
   const [rows, setRows] = useState<BoardProp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  const [debug, setDebug] = useState<string>("");
   const [oddsFilter, setOddsFilter] = useState("all");
   const [statFilter, setStatFilter] = useState("");
 
@@ -15,9 +14,6 @@ export default function BoardPage() {
     async function load() {
       setLoading(true);
       setError("");
-      setDebug(
-        `url=${supabaseDebug.url} | anonPrefix=${supabaseDebug.anonPrefix} | anonLength=${supabaseDebug.anonLength}`
-      );
 
       const snapshotRes = await supabase
         .from("board_snapshots")
@@ -27,37 +23,44 @@ export default function BoardPage() {
         .single();
 
       if (snapshotRes.error) {
-        setError(
-          `snapshot query failed: ${snapshotRes.error.message} | code=${snapshotRes.error.code ?? "none"}`
-        );
+        setError(`snapshot query failed: ${snapshotRes.error.message}`);
         setLoading(false);
         return;
       }
 
       const snapshotId = snapshotRes.data?.id;
       if (!snapshotId) {
-        setDebug((d) => `${d} | no latest snapshot found`);
         setRows([]);
         setLoading(false);
         return;
       }
 
-      const propsRes = await supabase
-        .from("board_props")
-        .select("*")
-        .eq("snapshot_id", snapshotId)
-        .order("player_name", { ascending: true });
+      const pageSize = 1000;
+      let from = 0;
+      let allRows: BoardProp[] = [];
 
-      if (propsRes.error) {
-        setError(
-          `board_props query failed: ${propsRes.error.message} | code=${propsRes.error.code ?? "none"}`
-        );
-        setLoading(false);
-        return;
+      while (true) {
+        const propsRes = await supabase
+          .from("board_props")
+          .select("*")
+          .eq("snapshot_id", snapshotId)
+          .order("player_name", { ascending: true })
+          .range(from, from + pageSize - 1);
+
+        if (propsRes.error) {
+          setError(`board_props query failed: ${propsRes.error.message}`);
+          setLoading(false);
+          return;
+        }
+
+        const batch = (propsRes.data as BoardProp[]) ?? [];
+        allRows = allRows.concat(batch);
+
+        if (batch.length < pageSize) break;
+        from += pageSize;
       }
 
-      setRows((propsRes.data as BoardProp[]) ?? []);
-      setDebug((d) => `${d} | snapshot=${snapshotId} | rows=${(propsRes.data ?? []).length}`);
+      setRows(allRows);
       setLoading(false);
     }
 
@@ -98,7 +101,6 @@ export default function BoardPage() {
         </select>
       </div>
 
-      {debug ? <div style={panelStyle}>{debug}</div> : null}
       {error ? <div style={{ ...panelStyle, color: "#fca5a5" }}>{error}</div> : null}
 
       {loading ? (
